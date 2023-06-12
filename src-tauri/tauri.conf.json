@@ -19,7 +19,7 @@
 		},
 		"bundle": {
 			"active": true,
-			"targets": "app",
+			"targets": "dmg",
 			"identifier": "com.mravenisko.numlock-tray",
 			"icon": ["icons/icon.png"],
 			"category": "Utility",
