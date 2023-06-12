@@ -1,0 +1,33 @@
+{
+	"build": {
+		"beforeDevCommand": "",
+		"beforeBuildCommand": "cargo build --release --manifest-path src-cli/Cargo.toml && mkdir -p src-tauri/bin && cp src-cli/target/release/cli src-tauri/bin/",
+		"devPath": "../dist",
+		"distDir": "../dist"
+	},
+	"package": {
+		"productName": "numlock-tray",
+		"version": "0.1.0"
+	},
+	"tauri": {
+		"allowlist": {
+			"all": false,
+			"shell": {
+				"all": false,
+				"open": true
+			}
+		},
+		"bundle": {
+			"active": true,
+			"targets": "app",
+			"identifier": "com.mravenisko.numlock-tray",
+			"icon": ["icons/icon.png"],
+			"category": "Utility",
+			"resources": ["bin"]
+		},
+		"systemTray": {
+			"iconPath": "icons/icon.png",
+			"iconAsTemplate": true
+		}
+	}
+}
