@@ -1,15 +1,12 @@
 {
 	"name": "numlock-tray",
 	"author": "Daniel Breiner <contact@danielbreiner.eu>",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"scripts": {
 		"dev": "tauri dev",
 		"build": "tauri build",
 		"tauri": "tauri"
-	},
-	"dependencies": {
-		"@tauri-apps/api": "^1.3.0"
 	},
 	"devDependencies": {
 		"@tauri-apps/cli": "^1.3.1"

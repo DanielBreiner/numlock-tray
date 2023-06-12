@@ -1,5 +1,7 @@
 use auto_launch::AutoLaunchBuilder;
+use serde_json::Value;
 use std::env::current_exe;
+use std::fs::File;
 use std::os::unix::net::UnixListener;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -15,16 +17,9 @@ fn main() {
             let handle = app.handle();
             let state: Arc<Mutex<Numlock>> = Arc::new(Mutex::new(Numlock::new(handle)));
             let handle = app.handle();
-            let cloned_state = Arc::clone(&state);
+            let state_ = Arc::clone(&state);
 
-            let app_name = &app.package_info().name;
-            let current_exe = current_exe().unwrap();
-            let auto_launch = AutoLaunchBuilder::new()
-                .set_app_name(&app_name)
-                .set_app_path(current_exe.to_str().unwrap())
-                .set_use_launch_agent(true)
-                .build()
-                .unwrap();
+            let auto_launch = setup_auto_launch(app);
 
             let mut startup_menu_item =
                 CustomMenuItem::new("startup".to_string(), "Run on startup");
@@ -70,14 +65,14 @@ fn main() {
                 })
                 .build(app)?;
 
-            cloned_state.lock().unwrap().initialize();
+            state_.lock().unwrap().initialize();
 
-            watch_cli(cloned_state);
+            watch_cli(state_);
 
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("Error while running tauri application");
+        .unwrap();
     app.set_activation_policy(ActivationPolicy::Accessory);
     app.run(|_app_handle, event| match event {
         tauri::RunEvent::ExitRequested { api, .. } => {
@@ -87,20 +82,31 @@ fn main() {
     });
 }
 
-fn watch_cli(cloned_state: Arc<Mutex<Numlock>>) {
+fn setup_auto_launch(app: &mut tauri::App) -> auto_launch::AutoLaunch {
+    let app_name = &app.package_info().name;
+    let current_exe = current_exe().unwrap();
+    AutoLaunchBuilder::new()
+        .set_app_name(&app_name)
+        .set_app_path(current_exe.to_str().unwrap())
+        .set_use_launch_agent(true)
+        .build()
+        .unwrap()
+}
+
+fn watch_cli(state: Arc<Mutex<Numlock>>) {
     thread::spawn(move || {
         let socket_path = "/tmp/numlock-cli-socket";
         if std::fs::metadata(socket_path).is_ok() {
             println!("A socket is already present. Deleting...");
-            std::fs::remove_file(socket_path).expect("Unable to delete file");
+            std::fs::remove_file(socket_path).unwrap();
         }
-        let listener = UnixListener::bind(socket_path).expect("Couldn't bind socket");
+        let listener = UnixListener::bind(socket_path).unwrap();
         println!("Socket open. Listening...");
         for stream in listener.incoming() {
             let mut stream = stream.unwrap();
             let mut buffer = [0; 1];
-            stream.read(&mut buffer).expect("Unable to read data");
-            let mut state = cloned_state.lock().unwrap();
+            stream.read(&mut buffer).unwrap();
+            let mut state = state.lock().unwrap();
             match &buffer {
                 b"1" => state.set_state(true),
                 b"0" => state.set_state(false),
@@ -108,6 +114,26 @@ fn watch_cli(cloned_state: Arc<Mutex<Numlock>>) {
             };
         }
     });
+}
+
+fn get_initial_enabled() -> bool {
+    let mut file = File::open(
+        "/Library/Application Support/org.pqrs/tmp/karabiner_grabber_manipulator_environment.json",
+    )
+    .unwrap();
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+
+    let data: Value = serde_json::from_str(&contents).unwrap();
+
+    if let Some(variables) = data.get("variables") {
+        if let Some(numlock) = variables.get("numlock") {
+            if let Some(numlock_value) = numlock.as_i64() {
+                return numlock_value == 1;
+            }
+        }
+    }
+    false
 }
 
 pub struct Numlock {
@@ -119,11 +145,7 @@ impl Numlock {
     pub fn new(app_handle: AppHandle) -> Self {
         Numlock {
             app_handle,
-            enabled: Command::new("jq")
-            .arg(".variables.numlock")
-            .arg("/Library/Application Support/org.pqrs/tmp/karabiner_grabber_manipulator_environment.json")
-            .output()
-            .expect("Failed to execute process").stdout == b"1\n",
+            enabled: get_initial_enabled(),
         }
     }
 
@@ -142,7 +164,7 @@ impl Numlock {
             .arg("--set-variables")
             .arg(format!("{{\"numlock\":{flag} }}"))
             .output()
-            .expect("Failed to execute process");
+            .unwrap();
         self.app_handle
             .tray_handle()
             .set_icon(tauri::Icon::Raw(if self.enabled {
@@ -150,6 +172,6 @@ impl Numlock {
             } else {
                 include_bytes!("../icons/disabled.png").to_vec()
             }))
-            .expect("Failed to set tray icon");
+            .unwrap();
     }
 }
