@@ -160,11 +160,6 @@ impl Numlock {
     pub fn set_state(&mut self, state: bool) {
         self.enabled = state;
         let flag = if self.enabled { "1" } else { "0" };
-        Command::new("/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli")
-            .arg("--set-variables")
-            .arg(format!("{{\"numlock\":{flag} }}"))
-            .output()
-            .unwrap();
         self.app_handle
             .tray_handle()
             .set_icon(tauri::Icon::Raw(if self.enabled {
@@ -172,6 +167,11 @@ impl Numlock {
             } else {
                 include_bytes!("../icons/disabled.png").to_vec()
             }))
+            .unwrap();
+        Command::new("/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli")
+            .arg("--set-variables")
+            .arg(format!("{{\"numlock\":{flag} }}"))
+            .output()
             .unwrap();
     }
 }

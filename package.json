@@ -1,7 +1,7 @@
 {
 	"name": "numlock-tray",
 	"author": "Daniel Breiner <contact@danielbreiner.eu>",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"type": "module",
 	"scripts": {
 		"dev": "tauri dev",
