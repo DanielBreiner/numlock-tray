@@ -74,12 +74,7 @@ fn main() {
         .build(tauri::generate_context!())
         .unwrap();
     app.set_activation_policy(ActivationPolicy::Accessory);
-    app.run(|_app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { api, .. } => {
-            api.prevent_exit();
-        }
-        _ => {}
-    });
+    app.run(|_app_handle, _event| {});
 }
 
 fn setup_auto_launch(app: &mut tauri::App) -> auto_launch::AutoLaunch {
@@ -108,8 +103,8 @@ fn watch_cli(state: Arc<Mutex<Numlock>>) {
             stream.read(&mut buffer).unwrap();
             let mut state = state.lock().unwrap();
             match &buffer {
-                b"1" => state.set_state(true),
-                b"0" => state.set_state(false),
+                b"1" => state.set_state(true, false),
+                b"0" => state.set_state(false, false),
                 _ => (),
             };
         }
@@ -150,16 +145,15 @@ impl Numlock {
     }
 
     pub fn initialize(&mut self) {
-        self.set_state(self.enabled);
+        self.set_state(self.enabled, true);
     }
 
     pub fn switch(&mut self) {
-        self.set_state(!self.enabled);
+        self.set_state(!self.enabled, true);
     }
 
-    pub fn set_state(&mut self, state: bool) {
+    pub fn set_state(&mut self, state: bool, call_cli: bool) {
         self.enabled = state;
-        let flag = if self.enabled { "1" } else { "0" };
         self.app_handle
             .tray_handle()
             .set_icon(tauri::Icon::Raw(if self.enabled {
@@ -168,10 +162,15 @@ impl Numlock {
                 include_bytes!("../icons/disabled.png").to_vec()
             }))
             .unwrap();
-        Command::new("/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli")
+        if call_cli {
+            let flag = if self.enabled { "1" } else { "0" };
+            Command::new(
+                "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli",
+            )
             .arg("--set-variables")
             .arg(format!("{{\"numlock\":{flag} }}"))
             .output()
             .unwrap();
+        }
     }
 }

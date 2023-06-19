@@ -1,6 +1,6 @@
 [package]
 name = "numlock-tray"
-version = "0.1.2"
+version = "0.1.3"
 description = "Display and change Karabiner Numlock state"
 authors = ["Daniel Breiner"]
 license = ""
