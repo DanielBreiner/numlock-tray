@@ -1,3 +1,5 @@
+I am using [Karabiner-Elements](https://karabiner-elements.pqrs.org/) to allow numlock to switch my numpad keys between numbers and custom keys (volume control, arrow keys, macros, script execution). I created a Karabiner variable called `numlock` which is toggled on `key_code: "keypad_num_lock"`. Here is the relevant rule (from `karabiner.json`):
+
 ```json
 {
 	"description": "Rebind numeric keyboard",
